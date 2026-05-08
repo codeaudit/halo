@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import os
 
+import pytest
+
 from engine.telemetry import setup_telemetry
+
+
+@pytest.fixture(autouse=True)
+def _clear_catalyst_env(monkeypatch) -> None:
+    """Local-path tests rely on ``CATALYST_OTLP_TOKEN`` being unset; a stray
+    value in a developer's shell would silently route them through
+    ``_setup_catalyst``. Catalyst-path tests below re-set this themselves."""
+    monkeypatch.delenv("CATALYST_OTLP_TOKEN", raising=False)
 
 
 def test_setup_returns_none_when_disabled(monkeypatch) -> None:
@@ -264,3 +274,25 @@ def test_catalyst_path_stamps_halo_run_id(monkeypatch) -> None:
     assert "deployment.environment=dev" in attrs
     assert "halo.run_id=run-abc" in attrs
     handle.shutdown()
+
+
+def test_catalyst_path_replaces_prior_halo_run_id(monkeypatch) -> None:
+    """Repeated calls to setup_telemetry in the same process must not
+    accumulate stale halo.run_id entries in OTEL_RESOURCE_ATTRIBUTES."""
+    monkeypatch.setenv("CATALYST_OTLP_TOKEN", "test-token")
+    monkeypatch.setenv("OTEL_RESOURCE_ATTRIBUTES", "deployment.environment=dev")
+    monkeypatch.setattr("engine.telemetry.setup.set_trace_processors", lambda procs: None)
+    _install_stub_catalyst(monkeypatch)
+
+    h1 = setup_telemetry(enable=True, run_id="run-aaa")
+    assert h1 is not None
+    h2 = setup_telemetry(enable=True, run_id="run-bbb")
+    assert h2 is not None
+
+    attrs = os.environ.get("OTEL_RESOURCE_ATTRIBUTES", "")
+    halo_tokens = [t for t in attrs.split(",") if t.strip().startswith("halo.run_id=")]
+    assert halo_tokens == ["halo.run_id=run-bbb"], f"expected only the latest run_id, got {attrs!r}"
+    assert "deployment.environment=dev" in attrs
+
+    h1.shutdown()
+    h2.shutdown()

@@ -76,8 +76,10 @@ def setup_telemetry(*, enable: bool, run_id: str) -> TelemetryHandle | None:
 def _setup_catalyst(*, run_id: str) -> TelemetryHandle:
     os.environ.setdefault("CATALYST_SERVICE_NAME", "halo-engine")
     existing = os.environ.get("OTEL_RESOURCE_ATTRIBUTES", "").strip()
-    halo_attr = f"halo.run_id={run_id}"
-    os.environ["OTEL_RESOURCE_ATTRIBUTES"] = f"{existing},{halo_attr}" if existing else halo_attr
+    # Drop any halo.run_id we appended on a prior call so repeated invocations
+    # in the same process (library usage) don't accumulate stale entries.
+    kept = [t for t in existing.split(",") if t and not t.strip().startswith("halo.run_id=")]
+    os.environ["OTEL_RESOURCE_ATTRIBUTES"] = ",".join([*kept, f"halo.run_id={run_id}"])
 
     backend = catalyst_setup()
     return TelemetryHandle(backend=backend)
