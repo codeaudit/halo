@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 from engine.agents.turn_counter import _render_nudge
@@ -91,7 +93,8 @@ class TestTurnCounterInputFilter:
         f = TurnCounterInputFilter(max_turns=10, is_root=True)
         for expected_turn in (1, 2, 3, 4, 5):
             result = f(_make_call_data([{"role": "user", "content": "x"}]))
-            assert result.input[-1]["content"] == f"[HALO: turn {expected_turn} of 10]"
+            appended = cast(dict, result.input[-1])
+            assert appended["content"] == f"[HALO: turn {expected_turn} of 10]"
 
     def test_two_filter_instances_have_independent_counters(self) -> None:
         f1 = TurnCounterInputFilter(max_turns=5, is_root=True)
@@ -99,7 +102,8 @@ class TestTurnCounterInputFilter:
         f1(_make_call_data([{"role": "user", "content": "a"}]))
         f1(_make_call_data([{"role": "user", "content": "a"}]))
         result = f2(_make_call_data([{"role": "user", "content": "b"}]))
-        assert result.input[-1]["content"] == "[HALO: turn 1 of 5]"
+        appended = cast(dict, result.input[-1])
+        assert appended["content"] == "[HALO: turn 1 of 5]"
 
     def test_does_not_mutate_input_list(self) -> None:
         f = TurnCounterInputFilter(max_turns=10, is_root=True)
@@ -117,11 +121,12 @@ class TestTurnCounterInputFilter:
         f = TurnCounterInputFilter(max_turns=2, is_root=False)
         f(_make_call_data([{"role": "user", "content": "x"}]))
         result = f(_make_call_data([{"role": "user", "content": "x"}]))
-        text = result.input[-1]["content"]
+        text = cast(str, cast(dict, result.input[-1])["content"])
         assert "concise" in text
         assert "<final/>" not in text
 
     def test_appended_item_is_user_role(self) -> None:
         f = TurnCounterInputFilter(max_turns=10, is_root=True)
         result = f(_make_call_data([]))
-        assert result.input[-1]["role"] == "user"
+        appended = cast(dict, result.input[-1])
+        assert appended["role"] == "user"
