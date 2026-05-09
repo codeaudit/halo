@@ -10,9 +10,9 @@ execution) and increments its counter on each invocation.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from agents.run_config import CallModelData, ModelInputData
+from openai.types.responses import EasyInputMessageParam
 
 
 def _render_nudge(*, current: int, maximum: int, is_root: bool) -> str:
@@ -60,9 +60,9 @@ class TurnCounterInputFilter:
     is_root: bool
     _current: int = 0
 
-    def __call__(self, data: CallModelData[Any]) -> ModelInputData:
+    def __call__(self, data: CallModelData) -> ModelInputData:
         self._current += 1
-        nudge = {
+        nudge: EasyInputMessageParam = {
             "role": "user",
             "content": _render_nudge(
                 current=self._current,
