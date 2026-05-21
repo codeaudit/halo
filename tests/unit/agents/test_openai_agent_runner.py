@@ -132,11 +132,7 @@ async def test_runner_retries_refusal_without_emitting_refusal() -> None:
     assert calls[1] == [
         {
             "role": "user",
-            "content": (
-                "The previous model response was a refusal. Retry the request using the "
-                "available context and tools. If you can answer, provide the final answer "
-                "and end it with <final/>."
-            ),
+            "content": "Continue.",
         }
     ]
     assert len(events) == 1
@@ -190,11 +186,7 @@ async def test_runner_keeps_refusal_retry_prompt_after_transient_retry_call_fail
     events = [e async for e in bus.stream()]
     retry_message = {
         "role": "user",
-        "content": (
-            "The previous model response was a refusal. Retry the request using the "
-            "available context and tools. If you can answer, provide the final answer "
-            "and end it with <final/>."
-        ),
+        "content": "Continue.",
     }
     assert len(calls) == 3
     assert calls[1] == [retry_message]
@@ -355,11 +347,7 @@ async def test_runner_retries_refusal_after_tool_result_without_replaying_tool_o
         },
         {
             "role": "user",
-            "content": (
-                "The previous model response was a refusal. Retry the request using the "
-                "available context and tools. If you can answer, provide the final answer "
-                "and end it with <final/>."
-            ),
+            "content": "Continue.",
         },
     ]
     assert [event.item.role for event in events] == ["assistant", "tool", "assistant"]

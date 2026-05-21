@@ -126,7 +126,8 @@ class OpenAiAgentRunner:
             attempt_refusal_text: str | None = None
             messages = [m.model_dump(exclude_none=True) for m in agent_context.to_messages_array()]
             if pending_refusal_retry:
-                messages.append(_refusal_retry_message(is_root=is_root))
+                # Sometimes gpt 5.5 randomly refuses requests. We simply need to reprompt it to continue.
+                messages.append({"role": "user", "content": "Continue."})
             try:
                 stream = await self._run_streamed(
                     agent=sdk_agent, input=messages, context=run_context
@@ -193,18 +194,3 @@ class OpenAiAgentRunner:
         raise EngineAgentExhaustedError(
             f"agent {agent_execution.agent_id} exhausted after {MAX_CONSECUTIVE_LLM_FAILURES} consecutive failures"
         ) from last_exc
-
-
-def _refusal_retry_message(*, is_root: bool) -> dict[str, str]:
-    if is_root:
-        content = (
-            "The previous model response was a refusal. Retry the request using the "
-            "available context and tools. If you can answer, provide the final answer "
-            "and end it with <final/>."
-        )
-    else:
-        content = (
-            "The previous model response was a refusal. Retry the delegated task using "
-            "the available context and tools. Return a concise answer. Do not emit <final/>."
-        )
-    return {"role": "user", "content": content}
