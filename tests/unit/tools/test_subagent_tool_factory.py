@@ -180,7 +180,15 @@ async def test_guarded_invoke_returns_failure_on_exception(monkeypatch: pytest.M
         openai_client=AsyncOpenAI(api_key="test"),
     )
 
-    def _exploding_run_streamed(*args, **kwargs):
+    def _exploding_run_streamed(
+        *,
+        starting_agent: Agent,
+        input: list[dict[str, object]],
+        context: EngineRunState,
+        max_turns: int,
+        run_config: RunConfig,
+    ) -> object:
+        del starting_agent, input, context, max_turns, run_config
         raise RuntimeError("SDK exploded")
 
     monkeypatch.setattr("agents.Runner.run_streamed", _exploding_run_streamed)
@@ -231,7 +239,15 @@ async def test_guarded_invoke_counts_turns_and_tool_calls(monkeypatch) -> None:
         async def wait_for_final_output(self):
             return self
 
-    def _fake_run_streamed(*args, **kwargs):
+    def _fake_run_streamed(
+        *,
+        starting_agent: Agent,
+        input: list[dict[str, object]],
+        context: EngineRunState,
+        max_turns: int,
+        run_config: RunConfig,
+    ) -> _Stream:
+        del starting_agent, input, context, max_turns, run_config
         return _Stream()
 
     monkeypatch.setattr("agents.Runner.run_streamed", _fake_run_streamed)
@@ -338,7 +354,15 @@ async def test_guarded_invoke_extracts_child_answer_from_raw_item(monkeypatch) -
         async def wait_for_final_output(self):
             return self
 
-    def _fake_run_streamed(*args, **kwargs):
+    def _fake_run_streamed(
+        *,
+        starting_agent: Agent,
+        input: list[dict[str, object]],
+        context: EngineRunState,
+        max_turns: int,
+        run_config: RunConfig,
+    ) -> _Stream:
+        del starting_agent, input, context, max_turns, run_config
         return _Stream()
 
     monkeypatch.setattr("agents.Runner.run_streamed", _fake_run_streamed)
@@ -392,7 +416,15 @@ async def test_depth_2_tool_runs_when_depth_1_slot_held(monkeypatch: pytest.Monk
         async def stream_events(self):
             yield one_event
 
-    def _fake_run_streamed(**_kwargs):
+    def _fake_run_streamed(
+        *,
+        starting_agent: Agent,
+        input: list[dict[str, object]],
+        context: EngineRunState,
+        max_turns: int,
+        run_config: RunConfig,
+    ) -> _Stream:
+        del starting_agent, input, context, max_turns, run_config
         return _Stream()
 
     monkeypatch.setattr("agents.Runner.run_streamed", _fake_run_streamed)
